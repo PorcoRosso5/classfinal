@@ -7,56 +7,58 @@ import net.roseboy.classfinal.util.*;
 import java.io.File;
 import java.util.*;
 
+import static net.roseboy.classfinal.util.EncryptUtils.getEncryptString;
+
 /**
  * java class加密
  *
  * @author roseboy
  */
 public class JarEncryptor {
-    //加密配置文件：加载配置文件是注入解密代码的配置
+    // 加密配置文件：加载配置文件是注入解密代码的配置
     static Map<String, String> aopMap = new HashMap<>();
 
     static {
-        //org.springframework.core.io.ClassPathResource#getInputStream注入解密功能
+        // org.springframework.core.io.ClassPathResource#getInputStream注入解密功能
         aopMap.put("spring.class", "org.springframework.core.io.ClassPathResource#getInputStream");
         aopMap.put("spring.code", "char[] c=${passchar};"
                 + "is=net.roseboy.classfinal.JarDecryptor.getInstance().decryptConfigFile(this.path,is,c);");
         aopMap.put("spring.line", "999");
 
-        //com.jfinal.kit.Prop#getInputStream注入解密功能
+        // com.jfinal.kit.Prop#getInputStream注入解密功能
         aopMap.put("jfinal.class", "com.jfinal.kit.Prop#<Prop>(java.lang.String,java.lang.String)");
         aopMap.put("jfinal.code", "char[] c=${passchar};inputStream=net.roseboy.classfinal.JarDecryptor.getInstance().decryptConfigFile(fileName,inputStream,c);");
         aopMap.put("jfinal.line", "62");
     }
 
-    //要加密的jar或war
+    // 要加密的jar或war
     private String jarPath = null;
-    //要加密的包，多个用逗号隔开
+    // 要加密的包，多个用逗号隔开
     private List<String> packages = null;
     //-INF/lib下要加密的jar
     private List<String> includeJars = null;
-    //排除的类名
+    // 排除的类名
     private List<String> excludeClass = null;
-    //依赖jar路径
+    // 依赖jar路径
     private List<String> classPath = null;
-    //需要加密的配置文件
+    // 需要加密的配置文件
     private List<String> cfgfiles = null;
-    //密码
+    // 密码
     private char[] password = null;
-    //机器码
+    // 机器码
     private char[] code = null;
 
-    //jar还是war
+    // jar还是war
     private String jarOrWar = null;
-    //工作目录
+    // 工作目录
     private File targetDir = null;
     //-INF/lib目录
     private File targetLibDir = null;
     //-INF/classes目录
     private File targetClassesDir = null;
-    //加密的文件数量
+    // 加密的文件数量
     private Integer encryptFileCount = null;
-    //存储解析出来的类名和路径
+    // 存储解析出来的类名和路径
     private Map<String, String> resolveClassName = new HashMap<>();
 
     /**
@@ -68,7 +70,7 @@ public class JarEncryptor {
     public JarEncryptor(String jarPath, char[] password) {
         super();
         this.jarPath = jarPath;
-        this.password = password;
+        this.password = getEncryptString();
     }
 
     /**
@@ -93,7 +95,7 @@ public class JarEncryptor {
 
         this.jarOrWar = jarPath.substring(jarPath.lastIndexOf(".") + 1);
         Log.debug("加密类型：" + jarOrWar);
-        //临时work目录
+        // 临时work目录
         this.targetDir = new File(jarPath.replace("." + jarOrWar, Const.LIB_JAR_DIR));
         this.targetLibDir = new File(this.targetDir, ("jar".equals(jarOrWar) ? "BOOT-INF" : "WEB-INF")
                 + File.separator + "lib");
@@ -121,7 +123,7 @@ public class JarEncryptor {
         });
         allFile.addAll(libJarFiles);
 
-        //压缩静态文件
+        // 压缩静态文件
 //        allFile.forEach(s -> {
 //            if (!s.endsWith(".ftl")) {
 //                return;
@@ -168,9 +170,9 @@ public class JarEncryptor {
             if (!file.endsWith(".class")) {
                 return;
             }
-            //解析出类全名
+            // 解析出类全名
             String className = resolveClassName(file, true);
-            //判断包名相同和是否排除的类
+            // 判断包名相同和是否排除的类
             if (StrUtils.isMatchs(this.packages, className, false)
                     && !StrUtils.isMatchs(this.excludeClass, className, false)) {
                 classFiles.add(new File(file));
@@ -189,27 +191,27 @@ public class JarEncryptor {
     private List<String> encryptClass(List<File> classFiles) {
         List<String> encryptClasses = new ArrayList<>();
 
-        //加密后存储的位置
+        // 加密后存储的位置
         File metaDir = new File(this.targetDir, "META-INF" + File.separator + Const.FILE_NAME);
         if (!metaDir.exists()) {
             metaDir.mkdirs();
         }
 
-        //无密码模式,自动生成一个密码
+        // 无密码模式,自动生成一个密码
         if (this.password.length == 1 && this.password[0] == '#') {
             char[] randChars = EncryptUtils.randChar(32);
-            this.password = EncryptUtils.md5(randChars);
+            this.password = getEncryptString();
             File configPass = new File(metaDir, Const.CONFIG_PASS);
             IoUtils.writeFile(configPass, StrUtils.toBytes(randChars));
         }
 
-        //有机器码
+        // 有机器码
         if (StrUtils.isNotEmpty(this.code)) {
             File configCode = new File(metaDir, Const.CONFIG_CODE);
             IoUtils.writeFile(configCode, StrUtils.toBytes(EncryptUtils.md5(this.code)));
         }
 
-        //加密另存
+        // 加密另存
         classFiles.forEach(classFile -> {
             String className = classFile.getName();
             if (className.endsWith(".class")) {
@@ -218,7 +220,7 @@ public class JarEncryptor {
             byte[] bytes = IoUtils.readFileToByte(classFile);
             char[] pass = StrUtils.merger(this.password, className.toCharArray());
             bytes = EncryptUtils.en(bytes, pass, Const.ENCRYPT_TYPE);
-            //有机器码，再用机器码加密一遍
+            // 有机器码，再用机器码加密一遍
             if (StrUtils.isNotEmpty(this.code)) {
                 pass = StrUtils.merger(className.toCharArray(), this.code);
                 bytes = EncryptUtils.en(bytes, pass, Const.ENCRYPT_TYPE);
@@ -229,7 +231,7 @@ public class JarEncryptor {
             Log.debug("加密：" + className);
         });
 
-        //加密密码hash存储，用来验证密码是否正确
+        // 加密密码hash存储，用来验证密码是否正确
         char[] pchar = EncryptUtils.md5(StrUtils.merger(this.password, EncryptUtils.SALT));
         pchar = EncryptUtils.md5(StrUtils.merger(EncryptUtils.SALT, pchar));
         IoUtils.writeFile(new File(metaDir, Const.CONFIG_PASSHASH), StrUtils.toBytes(pchar));
@@ -243,7 +245,7 @@ public class JarEncryptor {
      * @param classFiles jar/war 下需要加密的class文件
      */
     private void clearClassMethod(List<File> classFiles) {
-        //初始化javassist
+        // 初始化javassist
         ClassPool pool = ClassPool.getDefault();
         //[1]把所有涉及到的类加入到ClassPool的classpath
         //[1.1]lib目录所有的jar加入classpath
@@ -264,7 +266,7 @@ public class JarEncryptor {
             try {
                 pool.insertClassPath(classPath);
             } catch (NotFoundException e) {
-                //Ignore
+                // Ignore
             }
             classPaths.add(classPath);
             Log.debug("ClassPath: " + classPath);
@@ -273,7 +275,7 @@ public class JarEncryptor {
 
         //[2]修改class方法体，并保存文件
         classFiles.forEach(classFile -> {
-            //解析出类全名
+            // 解析出类全名
             String className = resolveClassName(classFile.getAbsolutePath(), true);
             byte[] bts = null;
             try {
@@ -294,9 +296,9 @@ public class JarEncryptor {
     public void addClassFinalAgent() {
         List<String> thisJarPaths = new ArrayList<>();
         thisJarPaths.add(this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath());
-        //paths.add(ClassPool.class.getProtectionDomain().getCodeSource().getLocation().getPath());
+        // paths.add(ClassPool.class.getProtectionDomain().getCodeSource().getLocation().getPath());
 
-        //把本项目的class文件打包进去
+        // 把本项目的class文件打包进去
         thisJarPaths.forEach(thisJar -> {
             File thisJarFile = new File(thisJar);
             if ("jar".endsWith(this.jarOrWar) && thisJar.endsWith(".jar")) {
@@ -307,7 +309,7 @@ public class JarEncryptor {
                 byte[] bytes = IoUtils.readFileToByte(thisJarFile);
                 IoUtils.writeFile(targetClassFinalJar, bytes);
             }
-            //本项目开发环境中未打包
+            // 本项目开发环境中未打包
             else if (thisJar.endsWith("/classes/")) {
                 List<File> files = new ArrayList<>();
                 IoUtils.listFile(files, new File(thisJar));
@@ -325,7 +327,7 @@ public class JarEncryptor {
             }
         });
 
-        //把javaagent信息加入到MANIFEST.MF
+        // 把javaagent信息加入到MANIFEST.MF
         File manifest = new File(this.targetDir, "META-INF/MANIFEST.MF");
         String preMain = "Premain-Class: " + CoreAgent.class.getName();
         String[] txts = {};
@@ -345,10 +347,10 @@ public class JarEncryptor {
             return;
         }
 
-        //支持的框架
-        //String[] supportFrame = {"spring", "jfinal"};
+        // 支持的框架
+        // String[] supportFrame = {"spring", "jfinal"};
         String[] supportFrame = {"spring"};
-        //需要注入解密功能的class
+        // 需要注入解密功能的class
         List<File> aopClass = new ArrayList<>(supportFrame.length);
 
         // [1].读取配置文件时解密
@@ -360,7 +362,7 @@ public class JarEncryptor {
             byte[] bytes = null;
             try {
                 String thisJar = this.getClass().getProtectionDomain().getCodeSource().getLocation().getPath();
-                //获取 框架 读取 配置文件的类,将密码注入该类
+                // 获取 框架 读取 配置文件的类,将密码注入该类
                 bytes = ClassUtils.insertCode(clazz, javaCode, line, this.targetLibDir, new File(thisJar));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -373,7 +375,7 @@ public class JarEncryptor {
             }
         });
 
-        //加密读取配置文件的类
+        // 加密读取配置文件的类
         this.encryptClass(aopClass);
         aopClass.forEach(cls -> cls.delete());
 
@@ -389,9 +391,9 @@ public class JarEncryptor {
                 configFiles.add(file);
             }
         }
-        //加密
+        // 加密
         this.encryptClass(configFiles);
-        //清空
+        // 清空
         configFiles.forEach(file -> IoUtils.writeTxtFile(file, ""));
     }
 
@@ -416,7 +418,7 @@ public class JarEncryptor {
             Log.debug("打包: " + targetJar);
         });
 
-        //删除META-INF下的maven
+        // 删除META-INF下的maven
         IoUtils.delete(new File(this.targetDir, "META-INF/maven"));
 
         //[2]再打包jar
@@ -445,19 +447,19 @@ public class JarEncryptor {
 
         String clsPath;
         String clsName;
-        //lib内的的jar包
+        // lib内的的jar包
         if (file.contains(K_LIB)) {
             clsName = file.substring(file.indexOf(Const.LIB_JAR_DIR, file.indexOf(K_LIB))
                     + Const.LIB_JAR_DIR.length() + 1);
             clsPath = file.substring(0, file.length() - clsName.length() - 1);
         }
-        //jar/war包-INF/classes下的class文件
+        // jar/war包-INF/classes下的class文件
         else if (file.contains(K_CLASSES)) {
             clsName = file.substring(file.indexOf(K_CLASSES) + K_CLASSES.length());
             clsPath = file.substring(0, file.length() - clsName.length() - 1);
 
         }
-        //jar包下的class文件
+        // jar包下的class文件
         else {
             clsName = file.substring(file.indexOf(Const.LIB_JAR_DIR) + Const.LIB_JAR_DIR.length() + 1);
             clsPath = file.substring(0, file.length() - clsName.length() - 1);

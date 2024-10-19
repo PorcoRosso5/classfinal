@@ -80,10 +80,10 @@ public class Main {
             Log.print("请输入机器码(可为空):");
             code = scanner.nextLine();
 
-            while (StrUtils.isEmpty(password)) {
-                Log.print("请输入加密密码:");
-                password = scanner.nextLine();
-            }
+            // while (StrUtils.isEmpty(password)) {
+            //     Log.print("请输入加密密码:");
+            //     password = scanner.nextLine();
+            // }
         }else{//在参数中取
             path = cmd.getOptionValue("file", "");
             libjars = cmd.getOptionValue("libjars", "");

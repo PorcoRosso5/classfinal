@@ -16,9 +16,9 @@ import java.util.*;
  * @author roseboy
  */
 public class EncryptUtils {
-    //盐
+    // 盐
     public static final char[] SALT = {'w', 'h', 'o', 'i', 's', 'y', 'o', 'u', 'r', 'd', 'a', 'd', 'd', 'y', '#', '$', '@', '#', '@'};
-    //rsa 长度
+    // rsa 长度
     private static int KEY_LENGTH = 1024;
 
     /**
@@ -190,10 +190,10 @@ public class EncryptUtils {
      */
     public static byte[] enRSA(byte[] msg, String publicKey) {
         try {
-            //base64编码的公钥
+            // base64编码的公钥
             byte[] decoded = Base64.getDecoder().decode(publicKey.getBytes("UTF-8"));
             RSAPublicKey pubKey = (RSAPublicKey) KeyFactory.getInstance("RSA").generatePublic(new X509EncodedKeySpec(decoded));
-            //RSA加密
+            // RSA加密
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.ENCRYPT_MODE, pubKey);
             return cipherDoFinal(cipher, msg, Cipher.ENCRYPT_MODE);
@@ -214,7 +214,7 @@ public class EncryptUtils {
      */
     public static String deRSA(String str, String privateKey) {
         try {
-            //64位解码加密后的字符串
+            // 64位解码加密后的字符串
             byte[] inputByte = Base64.getDecoder().decode(str.getBytes("UTF-8"));
             String outStr = new String(deRSA(inputByte, privateKey));
             return outStr;
@@ -233,10 +233,10 @@ public class EncryptUtils {
      */
     public static byte[] deRSA(byte[] msg, String privateKey) {
         try {
-            //base64编码的私钥
+            // base64编码的私钥
             byte[] decoded = Base64.getDecoder().decode(privateKey.getBytes("UTF-8"));
             RSAPrivateKey priKey = (RSAPrivateKey) KeyFactory.getInstance("RSA").generatePrivate(new PKCS8EncodedKeySpec(decoded));
-            //RSA解密
+            // RSA解密
             Cipher cipher = Cipher.getInstance("RSA");
             cipher.init(Cipher.DECRYPT_MODE, priKey);
             return cipherDoFinal(cipher, msg, Cipher.DECRYPT_MODE);
@@ -298,10 +298,10 @@ public class EncryptUtils {
         String privateKeyString = new String(Base64.getEncoder().encode((privateKey.getEncoded())));
 
         Map<Integer, String> keyMap = new HashMap<>();
-        keyMap.put(0, publicKeyString);  //0表示公钥
-        keyMap.put(1, privateKeyString);  //1表示私钥
-        keyMap.put(2, modulus.toString(16));//modulus
-        keyMap.put(3, publicExponent.toString(16));//e
+        keyMap.put(0, publicKeyString);  // 0表示公钥
+        keyMap.put(1, privateKeyString);  // 1表示私钥
+        keyMap.put(2, modulus.toString(16));// modulus
+        keyMap.put(3, publicExponent.toString(16));// e
         return keyMap;
     }
 
@@ -403,6 +403,23 @@ public class EncryptUtils {
         Collections.shuffle(list);
         for (int i = 0; i < lenght; i++) {
             result[i] = list.get(i);
+        }
+        return result;
+    }
+
+    public static char[] getEncryptString() {
+        String x = "!@#$%^&*";
+        char[] y = new char[]{'z', 'm', 'j', 'y', '-', 'z', 'k'};
+        char[] charArray = x.toCharArray();
+        char[] result = new char[15];
+        for (int i = 0; i < 15; i++) {
+            int p = i >> 1;
+            char c = charArray[p];
+            if (i % 2 == 0) {
+                result[i] = c;
+            } else if (p < 7) {
+                result[i] = y[p];
+            }
         }
         return result;
     }

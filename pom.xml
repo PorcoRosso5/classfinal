@@ -11,11 +11,11 @@
 
     <groupId>net.roseboy</groupId>
     <artifactId>classfinal</artifactId>
-    <version>1.2.1</version>
+    <version>zmjy-1.2.1</version>
     <modules>
         <module>classfinal-core</module><!--主要代码在这里-->
         <module>classfinal-fatjar</module><!--单独运行的jar、javaagent-->
-        <module>classfinal-web</module>
+        <!--        <module>classfinal-web</module>-->
         <module>classfinal-maven-plugin</module><!--maven插件-->
     </modules>
     <packaging>pom</packaging>
@@ -23,6 +23,19 @@
 
     <name>ClassFinal</name>
     <description>java class文件加密</description>
+
+    <!-- 芝麻nexus私服配置 -->
+    <repositories>
+        <repository>
+            <id>Public Repositories</id>
+            <name>Public Repositories</name>
+            <url>https://npt2.zhimajiayou.com/nexus/content/groups/public</url>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -53,16 +66,32 @@
     <build>
         <plugins>
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.7</version>
-                <extensions>true</extensions>
-                <configuration>
-                    <serverId>sonatype-nexus-staging</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                </configuration>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>3.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar-no-fork</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>
+
+    <!--发布配置管理-->
+    <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <name>releases</name>
+            <url>https://npt2.zhimajiayou.com/nexus/content/groups/releases/</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshots</id>
+            <name>snapshots</name>
+            <url>https://npt2.zhimajiayou.com/nexus/content/groups/snapshots/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
